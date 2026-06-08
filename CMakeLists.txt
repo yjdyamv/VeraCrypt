@@ -1,10 +1,22 @@
 cmake_minimum_required(VERSION 3.21)
+
+# Lock C++ standard before VSCode/IDE injected flags override it
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard")
+set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "Require C++ standard")
+set(CMAKE_C_STANDARD 11 CACHE STRING "C standard")
+set(CMAKE_C_STANDARD_REQUIRED ON CACHE BOOL "Require C standard")
+
 project(VeraCrypt
     VERSION 1.26.29
     DESCRIPTION "Disk encryption with strong security based on TrueCrypt"
     HOMEPAGE_URL "https://www.veracrypt.fr"
     LANGUAGES C CXX ASM
 )
+
+# Enforce x64 — kernel driver + MSVC inline asm require 64-bit
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR "VeraCrypt requires 64-bit build. Set CMake architecture to amd64/x64.")
+endif()
 
 if(NOT MSVC)
     enable_language(ASM)
@@ -180,8 +192,6 @@ endif()
 # ============================================================================
 if(MSVC)
     add_compile_definitions(_CRT_SECURE_NO_DEPRECATE _CRT_NON_CONFORMING_SWPRINTFS _HAS_STD_BYTE=0 UNICODE _UNICODE)
-    set(CMAKE_CXX_STANDARD 17)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
 else()
     set(CMAKE_C_STANDARD 11)
     set(CMAKE_CXX_STANDARD 14)

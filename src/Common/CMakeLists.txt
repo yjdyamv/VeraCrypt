@@ -72,7 +72,10 @@ veracrypt_set_base_defines(veracrypt_zip)
 veracrypt_set_warnings(veracrypt_zip)
 target_link_libraries(veracrypt_zip PUBLIC veracrypt_zlib)
 target_include_directories(veracrypt_zip PUBLIC libzip)
-target_compile_definitions(veracrypt_zip PRIVATE HAVE_CONFIG_H ZIP_STATIC)
+target_compile_definitions(veracrypt_zip PRIVATE
+    HAVE_CONFIG_H ZIP_STATIC
+    HAVE_FTELLO HAVE_FSEEKO
+)
 
 # -------------------------------------------------------------------
 # Core Common library

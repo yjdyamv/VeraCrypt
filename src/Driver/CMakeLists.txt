@@ -1,12 +1,15 @@
 # ============================================================================
 # VeraCrypt Windows kernel-mode driver (veracrypt.sys)
 #
-# This driver re-compiles most Crypto sources with TC_WINDOWS_DRIVER defined,
-# using kernel-mode APIs (ExAllocatePoolWithTag, ntoskrnl, fltmgr, etc.)
-# instead of user-mode CRT.
-#
-# Requires: Windows Driver Kit (WDK) 10.0+
-# CMake 3.21+ supports WDK toolchain via VS generator.
+# Kernel driver requires x64 architecture (WDK + 64-bit intrinsics).
+# ============================================================================
+if(NOT WIN32)
+    return()
+endif()
+
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "Kernel driver requires x64 build")
+endif()
 
 # Detect WDK SDK version
 set(WINSDK_VERSION "10.0.28000.0")
