@@ -220,6 +220,10 @@ if(WIN32)
 endif()
 
 # ============================================================================
-# Packaging (CPack) - .deb / .rpm generation on Linux
+# Packaging (CPack)
 # ============================================================================
-include(Packaging)
+if(WIN32)
+    include(WindowsPackaging)
+else()
+    include(Packaging)
+endif()
