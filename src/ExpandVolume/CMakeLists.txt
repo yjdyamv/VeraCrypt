@@ -87,6 +87,7 @@ target_include_directories(veracrypt_expander PRIVATE
     ${CMAKE_SOURCE_DIR}/src/PKCS11
     ${CMAKE_SOURCE_DIR}/src/Mount
     ${CMAKE_CURRENT_SOURCE_DIR}
+    "${CMAKE_BINARY_DIR}/src/Mount"  # MIDL headers from Mount
 )
 
 target_link_libraries(veracrypt_expander PRIVATE
@@ -115,3 +116,5 @@ set_target_properties(veracrypt_expander PROPERTIES
     WIN32_EXECUTABLE TRUE
     RUNTIME_OUTPUT_NAME "VeraCryptExpander"
 )
+
+add_dependencies(veracrypt_expander veracrypt_mount veracrypt_format)

@@ -52,7 +52,30 @@ set(FORMAT_SOURCES
     ../Common/Xts.c
 )
 
-add_executable(veracrypt_format WIN32 ${FORMAT_SOURCES})
+# MIDL compilation — generates FormatCom_h.h
+set(MIDL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set(MIDL_OUTPUTS
+    "${MIDL_OUTPUT_DIR}/FormatCom_h.h"
+    "${MIDL_OUTPUT_DIR}/FormatCom_i.c"
+)
+add_custom_command(
+    OUTPUT ${MIDL_OUTPUTS}
+    COMMAND midl.exe
+        /nologo
+        /char signed
+        /env win64
+        /Oicf
+        /I "${CMAKE_SOURCE_DIR}/src/Common"
+        /I "${CMAKE_SOURCE_DIR}/src"
+        /header "${MIDL_OUTPUT_DIR}/FormatCom_h.h"
+        /out "${MIDL_OUTPUT_DIR}"
+        FormatCom.idl
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/FormatCom.idl"
+    COMMENT "MIDL: FormatCom.idl"
+)
+
+add_executable(veracrypt_format WIN32 ${FORMAT_SOURCES} ${MIDL_OUTPUTS})
 
 target_compile_definitions(veracrypt_format PRIVATE
     VOLFORMAT
@@ -80,6 +103,7 @@ target_include_directories(veracrypt_format PRIVATE
     ${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/include
     ${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/src/blake2
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${MIDL_OUTPUT_DIR}
 )
 
 target_link_libraries(veracrypt_format PRIVATE

@@ -62,8 +62,35 @@ set(MOUNT_RESOURCES
     Mount.manifest
 )
 
+# MIDL compilation — generates MainCom_h.h, MainCom_i.c, MainCom_p.c
+set(MIDL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set(MIDL_OUTPUTS
+    "${MIDL_OUTPUT_DIR}/MainCom_h.h"
+    "${MIDL_OUTPUT_DIR}/MainCom_i.c"
+    "${MIDL_OUTPUT_DIR}/Mount.tlb"
+)
+add_custom_command(
+    OUTPUT ${MIDL_OUTPUTS}
+    COMMAND midl.exe
+        /nologo
+        /char signed
+        /env win64
+        /Oicf
+        /I "${CMAKE_SOURCE_DIR}/src/Common"
+        /I "${CMAKE_SOURCE_DIR}/src"
+        /header "${MIDL_OUTPUT_DIR}/MainCom_h.h"
+        /iid "${MIDL_OUTPUT_DIR}/MainCom_i.c"
+        /tlb "${MIDL_OUTPUT_DIR}/Mount.tlb"
+        /out "${MIDL_OUTPUT_DIR}"
+        MainCom.idl
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/MainCom.idl"
+    COMMENT "MIDL: MainCom.idl"
+)
+
 add_executable(veracrypt_mount WIN32
     ${MOUNT_SOURCES}
+    ${MIDL_OUTPUTS}
     ${MOUNT_RESOURCES}
 )
 
@@ -93,6 +120,7 @@ target_include_directories(veracrypt_mount PRIVATE
     ${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/include
     ${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/src/blake2
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${MIDL_OUTPUT_DIR}
 )
 
 target_link_libraries(veracrypt_mount PRIVATE
@@ -129,7 +157,6 @@ if(MSVC)
     )
     set_target_properties(veracrypt_mount PROPERTIES
         WIN32_EXECUTABLE TRUE
-        VS_DELAYLOAD_SUPPORT_DLL "${CMAKE_SOURCE_DIR}/src/Release/Setup Files/delayload.c"
     )
 endif()
 

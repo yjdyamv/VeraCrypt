@@ -3,8 +3,24 @@ project(VeraCrypt
     VERSION 1.26.29
     DESCRIPTION "Disk encryption with strong security based on TrueCrypt"
     HOMEPAGE_URL "https://www.veracrypt.fr"
-    LANGUAGES C CXX
+    LANGUAGES C CXX ASM
 )
+
+if(NOT MSVC)
+    enable_language(ASM)
+endif()
+
+# NASM assembler - try to find or use specified path
+if(NOT DEFINED CMAKE_ASM_NASM_COMPILER)
+    find_program(NASM_EXECUTABLE nasm)
+    if(NASM_EXECUTABLE)
+        set(CMAKE_ASM_NASM_COMPILER "${NASM_EXECUTABLE}")
+    endif()
+endif()
+enable_language(ASM_NASM OPTIONAL)
+if(CMAKE_ASM_NASM_COMPILER)
+    message(STATUS "NASM assembler: ${CMAKE_ASM_NASM_COMPILER}")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
