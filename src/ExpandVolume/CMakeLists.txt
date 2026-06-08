@@ -114,7 +114,7 @@ endif()
 
 set_target_properties(veracrypt_expander PROPERTIES
     WIN32_EXECUTABLE TRUE
-    RUNTIME_OUTPUT_NAME "VeraCryptExpander"
+    RUNTIME_OUTPUT_NAME "VeraCryptExpander-x64"
 )
 
 add_dependencies(veracrypt_expander veracrypt_mount veracrypt_format)

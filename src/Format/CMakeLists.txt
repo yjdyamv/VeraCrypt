@@ -132,5 +132,5 @@ endif()
 
 set_target_properties(veracrypt_format PROPERTIES
     WIN32_EXECUTABLE TRUE
-    RUNTIME_OUTPUT_NAME "VeraCrypt Format"
+    RUNTIME_OUTPUT_NAME "VeraCrypt Format-x64"
 )

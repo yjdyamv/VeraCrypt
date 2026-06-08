@@ -30,7 +30,7 @@ set(CPACK_PACKAGE_NAME "VeraCrypt")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${VERACRYPT_VERSION}-Windows-x64")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "VeraCrypt")
 set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "VeraCrypt")
-set(CPACK_PACKAGE_EXECUTABLES "VeraCrypt-x64.exe" "VeraCrypt" "VeraCrypt Format.exe" "VeraCrypt Format")
+set(CPACK_PACKAGE_EXECUTABLES "VeraCrypt-x64.exe" "VeraCrypt" "VeraCrypt Format-x64.exe" "VeraCrypt Format")
 
 set(CPACK_NSIS_DISPLAY_NAME "VeraCrypt")
 set(CPACK_NSIS_PACKAGE_NAME "VeraCrypt ${VERACRYPT_VERSION}")
@@ -43,7 +43,7 @@ set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 set(CPACK_NSIS_CREATE_ICONS_EXTRA "
     CreateDirectory '$SMPROGRAMS\\VeraCrypt'
     CreateShortCut '$SMPROGRAMS\\VeraCrypt\\VeraCrypt.lnk' '$INSTDIR\\VeraCrypt-x64.exe'
-    CreateShortCut '$SMPROGRAMS\\VeraCrypt\\VeraCrypt Format.lnk' '$INSTDIR\\VeraCrypt Format.exe'
+    CreateShortCut '$SMPROGRAMS\\VeraCrypt\\VeraCrypt Format.lnk' '$INSTDIR\\VeraCrypt Format-x64.exe'
     CreateShortCut '$SMPROGRAMS\\VeraCrypt\\Uninstall.lnk' '$INSTDIR\\Uninstall.exe'
     CreateShortCut '$DESKTOP\\VeraCrypt.lnk' '$INSTDIR\\VeraCrypt-x64.exe'
 ")
@@ -66,11 +66,11 @@ install(TARGETS veracrypt_mount
 )
 install(TARGETS veracrypt_format
     RUNTIME DESTINATION .
-    RENAME "VeraCrypt Format.exe"
+    RENAME "VeraCrypt Format-x64.exe"
 )
 install(TARGETS veracrypt_expander
     RUNTIME DESTINATION .
-    RENAME VeraCryptExpander.exe
+    RENAME VeraCryptExpander-x64.exe
 )
 
 # Kernel driver
