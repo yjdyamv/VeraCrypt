@@ -115,16 +115,13 @@ if(CRYPTO_X64 AND NOT VERACRYPT_NOASM)
             Aes_x64.asm
             Aes_hw_cpu.asm
         )
-        if(WIN32)
-            list(APPEND NASM_SOURCES Aes_x86.asm)  # compiled but excluded on x64 Windows
-        endif()
 
         foreach(ASM_FILE ${NASM_SOURCES})
             get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
             set(ASM_OBJ "${CMAKE_CURRENT_BINARY_DIR}/${ASM_NAME}.obj")
             if(MSVC)
                 set(NASM_FMT win64)
-                set(NASM_EXTRA --prefix _)
+                set(NASM_EXTRA "")
             elseif(APPLE)
                 set(NASM_FMT macho64)
                 set(NASM_EXTRA "")

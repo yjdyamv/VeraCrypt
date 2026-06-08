@@ -50,10 +50,9 @@ target_include_directories(veracrypt_zlib PUBLIC zlib)
 file(GLOB VC_ZIP_SOURCES
     libzip/*.c
 )
-# Exclude platform-specific files that don't apply
+# On Windows, keep Win32 file sources (utf8 is required for zip_source_file_create)
 list(FILTER VC_ZIP_SOURCES EXCLUDE REGEX "libzip/zip_random_win32\\.c$")
 list(FILTER VC_ZIP_SOURCES EXCLUDE REGEX "libzip/zip_random_uwp\\.c$")
-list(FILTER VC_ZIP_SOURCES EXCLUDE REGEX "libzip/zip_source_file_win32.*\\.c$")
 # Exclude crypto backends that require external libraries
 list(FILTER VC_ZIP_SOURCES EXCLUDE REGEX "libzip/zip_crypto_mbedtls\\.c$")
 list(FILTER VC_ZIP_SOURCES EXCLUDE REGEX "libzip/zip_crypto_openssl\\.c$")
