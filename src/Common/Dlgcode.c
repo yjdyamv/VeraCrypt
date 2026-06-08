@@ -3949,7 +3949,7 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 	// in TESTSIGNING mode, we support only Windows 7 and Windows 8/8.1
 	if (
 #ifndef SETUP
-			IsOSVersionAtLeast(WIN_10, 0) ||
+			IsOSVersionAtLeast(WIN_10, 0)
 #else
 		(IsOSVersionAtLeast(WIN_10, 0) && !bMakePackage)
 #endif
