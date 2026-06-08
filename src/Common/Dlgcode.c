@@ -976,7 +976,7 @@ cleanup:
 
 static BOOL VerifyModuleSignatureInternal (const wchar_t* path, BOOL bAllowMicrosoftWHQL)
 {
-#if defined(NDEBUG) && !defined (VC_SKIP_OS_DRIVER_REQ_CHECK)
+#if defined(NDEBUG) && !defined (VC_SKIP_OS_DRIVER_REQ_CHECK) && !defined (VC_SKIP_SIGNATURE_CHECK)
 	BOOL bResult = FALSE;
 	HRESULT hResult;
 	GUID gActionID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
@@ -3949,7 +3949,7 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 	// in TESTSIGNING mode, we support only Windows 7 and Windows 8/8.1
 	if (
 #ifndef SETUP
-			IsOSVersionAtLeast(WIN_10, 0)
+			IsOSVersionAtLeast(WIN_10, 0) ||
 #else
 		(IsOSVersionAtLeast(WIN_10, 0) && !bMakePackage)
 #endif

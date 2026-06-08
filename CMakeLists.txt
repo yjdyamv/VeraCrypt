@@ -201,7 +201,7 @@ endif()
 
 # Signature verification skip for development/testing builds
 if(VERACRYPT_SKIP_SIGNATURE_CHECK)
-    add_compile_definitions(VC_SKIP_OS_DRIVER_REQ_CHECK)
+    add_compile_definitions(VC_SKIP_SIGNATURE_CHECK)
 endif()
 
 # ============================================================================
