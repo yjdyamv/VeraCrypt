@@ -1725,7 +1725,12 @@ static void LaunchVolCreationWizard (HWND hwndDlg, const wchar_t *arg, BOOL bEle
 		PROCESS_INFORMATION pi;
 		wchar_t formatExeName[64];
 		wchar_t* suffix = NULL;
+		wchar_t appDir[TC_MAX_PATH + 1024];
 		ZeroMemory (&si, sizeof (si));
+
+		// Save directory path before truncation for lpCurrentDirectory
+		StringCbCopyW (appDir, sizeof(appDir), t + 1);
+		appDir[tmp - (t + 1)] = 0;
 
 		StringCbCopyW (formatExeName, sizeof (formatExeName), L"\\VeraCrypt Format");
 
@@ -1763,7 +1768,7 @@ static void LaunchVolCreationWizard (HWND hwndDlg, const wchar_t *arg, BOOL bEle
 					StringCbCatW (t, sizeof(t), L" ");
 					StringCbCatW (t, sizeof(t), arg);
 				}
-				if (!CreateProcess (NULL, (LPWSTR) t, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi))
+				if (!CreateProcess (NULL, (LPWSTR) t, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, appDir, &si, &pi))
 				{
 					handleWin32Error (hwndDlg, SRC_POS);
 				}
@@ -1792,6 +1797,11 @@ static void LaunchVolExpander (HWND hwndDlg)
 
 		StringCbCopyW (expanderExeName, sizeof (expanderExeName), L"\\VeraCryptExpander");
 
+		// Save directory path before truncation
+		wchar_t expanderAppDir[TC_MAX_PATH + TC_MAX_PATH];
+		StringCbCopyW (expanderAppDir, sizeof(expanderAppDir), t + 1);
+		expanderAppDir[tmp - (t + 1)] = 0;
+
 		// check if there is a suffix in VeraCrypt file name
 		// in order to use the same for "VeraCrypt Format"
 		suffix = wcsrchr (tmp + 1, L'-');
@@ -1808,7 +1818,7 @@ static void LaunchVolExpander (HWND hwndDlg)
 
 		if (!FileExists(t))
 			Error ("VOL_EXPANDER_NOT_FOUND", hwndDlg);	// Display a user-friendly error message and advise what to do
-		else if (((INT_PTR)ShellExecuteW (NULL, (!IsAdmin() && IsUacSupported()) ? L"runas" : L"open", t, NULL, NULL, SW_SHOW)) <= 32)
+		else if (((INT_PTR)ShellExecuteW (NULL, (!IsAdmin() && IsUacSupported()) ? L"runas" : L"open", t, NULL, expanderAppDir, SW_SHOW)) <= 32)
 		{
 			handleWin32Error (hwndDlg, SRC_POS);
 		}
