@@ -7,6 +7,26 @@
 #
 # Requires: Windows Driver Kit (WDK) 10.0+
 # CMake 3.21+ supports WDK toolchain via VS generator.
+
+# Detect WDK SDK version
+set(WINSDK_VERSION "10.0.28000.0")
+file(GLOB WINSDK_ROOT "C:/Program Files (x86)/Windows Kits/10/Include/${WINSDK_VERSION}")
+if(NOT EXISTS "${WINSDK_ROOT}/km/ntifs.h")
+    # Fallback to latest installed
+    file(GLOB WINSDK_VERSIONS "C:/Program Files (x86)/Windows Kits/10/Include/10.*")
+    foreach(_v ${WINSDK_VERSIONS})
+        if(EXISTS "${_v}/km/ntifs.h")
+            string(REGEX MATCH "10\\.[0-9]+\\.[0-9]+" WINSDK_VERSION "${_v}")
+            break()
+        endif()
+    endforeach()
+endif()
+if(NOT EXISTS "${WINSDK_ROOT}/km/ntifs.h")
+    set(WINSDK_ROOT "C:/Program Files (x86)/Windows Kits/10/Include/${WINSDK_VERSION}")
+endif()
+set(WINSDK_LIB_ROOT "C:/Program Files (x86)/Windows Kits/10/Lib/${WINSDK_VERSION}/km/x64")
+
+message(STATUS "WDK SDK: ${WINSDK_VERSION}")
 # ============================================================================
 
 if(NOT WIN32)
@@ -41,7 +61,6 @@ set(DRIVER_SOURCES
     Ntdriver.c
     Ntvol.c
     VolumeFilter.c
-    Driver.rc
 )
 
 
@@ -117,7 +136,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Create kernel driver target
 # ---------------------------------------------------------------------------
-add_library(veracrypt_driver MODULE EXCLUDE_FROM_ALL ${DRIVER_SOURCES} ${DRIVER_CRYPTO_SOURCES})
+add_library(veracrypt_driver MODULE ${DRIVER_SOURCES} ${DRIVER_CRYPTO_SOURCES})
 
 target_include_directories(veracrypt_driver PRIVATE
     "${CMAKE_SOURCE_DIR}/src"
@@ -126,6 +145,9 @@ target_include_directories(veracrypt_driver PRIVATE
     "${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/include"
     "${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/src/blake2"
     "${CMAKE_BINARY_DIR}"
+    "${WINSDK_ROOT}/km"
+    "${WINSDK_ROOT}/shared"
+    "${WINSDK_ROOT}/km/crt"
 )
 
 target_compile_definitions(veracrypt_driver PRIVATE
@@ -134,12 +156,118 @@ target_compile_definitions(veracrypt_driver PRIVATE
     ARGON2_NO_THREADS
     UNICODE _UNICODE
     WIN32
+    _AMD64_
+    _WIN64
 )
 
 if(VERACRYPT_CPU_ARCH STREQUAL "arm64")
     target_compile_definitions(veracrypt_driver PRIVATE
         _ARM64_ ARM64 _USE_DECLSPECS_FOR_SAL=1 STD_CALL
     )
+endif()
+
+# ---------------------------------------------------------------------------
+# Assembly sources (NASM + YASM + MASM) — recompiled in kernel mode
+# Same files as Crypto library, but built into veracrypt_driver directly.
+# ---------------------------------------------------------------------------
+set(DRIVER_ASM_OBJECTS "")
+
+# NASM — AES x64 assembly
+if(VERACRYPT_CPU_ARCH STREQUAL "x64" AND NOT VERACRYPT_NOASM)
+    find_program(NASM_EXECUTABLE nasm)
+    if(NASM_EXECUTABLE)
+        set(DRV_NASM_SRCS
+            "${CMAKE_SOURCE_DIR}/src/Crypto/Aes_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/Aes_hw_cpu.asm"
+        )
+        foreach(ASM_FILE ${DRV_NASM_SRCS})
+            get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
+            set(ASM_OBJ "${CMAKE_CURRENT_BINARY_DIR}/${ASM_NAME}_drv.obj")
+            add_custom_command(
+                OUTPUT ${ASM_OBJ}
+                COMMAND ${NASM_EXECUTABLE}
+                    -f win64 -D __BITS__=64 -D __YASM__
+                    -Xvc -Ox -o ${ASM_OBJ} ${ASM_FILE}
+                DEPENDS ${ASM_FILE}
+                COMMENT "NASM(drv): ${ASM_NAME}"
+            )
+            list(APPEND DRIVER_ASM_OBJECTS ${ASM_OBJ})
+        endforeach()
+    endif()
+endif()
+
+# YASM — .S files (gas parser) + .asm files (YASM syntax)
+if(VERACRYPT_CPU_ARCH STREQUAL "x64" AND NOT VERACRYPT_NOASM)
+    find_program(YASM_EXECUTABLE yasm)
+    if(YASM_EXECUTABLE)
+        set(DRV_YASM_S_SRCS
+            "${CMAKE_SOURCE_DIR}/src/Crypto/Twofish_x64.S"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/Camellia_aesni_x64.S"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/Camellia_x64.S"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha512-x64-nayuki.S"
+        )
+        foreach(ASM_FILE ${DRV_YASM_S_SRCS})
+            get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
+            set(ASM_OBJ "${CMAKE_CURRENT_BINARY_DIR}/${ASM_NAME}_drv.obj")
+            add_custom_command(
+                OUTPUT ${ASM_OBJ}
+                COMMAND ${YASM_EXECUTABLE}
+                    -f win64 -D __GNUC__ -D __YASM__ -D WINABI
+                    -p gas -Xvc -o ${ASM_OBJ} ${ASM_FILE}
+                DEPENDS ${ASM_FILE}
+                COMMENT "YASM(gas,drv): ${ASM_NAME}"
+            )
+            list(APPEND DRIVER_ASM_OBJECTS ${ASM_OBJ})
+        endforeach()
+
+        set(DRV_YASM_ASM_SRCS
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha256_avx1_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha256_avx2_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha256_sse4_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha512_avx1_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha512_avx2_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/sha512_sse4_x64.asm"
+            "${CMAKE_SOURCE_DIR}/src/Crypto/Argon2/src/opt_avx2.asm"
+        )
+        foreach(ASM_FILE ${DRV_YASM_ASM_SRCS})
+            get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
+            set(ASM_OBJ "${CMAKE_CURRENT_BINARY_DIR}/${ASM_NAME}_drv.obj")
+            add_custom_command(
+                OUTPUT ${ASM_OBJ}
+                COMMAND ${YASM_EXECUTABLE}
+                    -f win64 -D __GNUC__ -D __YASM__ -D WINABI
+                    -Xvc -Ox -o ${ASM_OBJ} ${ASM_FILE}
+                DEPENDS ${ASM_FILE}
+                COMMENT "YASM(drv): ${ASM_NAME}"
+            )
+            list(APPEND DRIVER_ASM_OBJECTS ${ASM_OBJ})
+        endforeach()
+    endif()
+endif()
+
+# MASM — RDRAND/RDSEED instructions
+if(VERACRYPT_CPU_ARCH STREQUAL "x64" AND MSVC AND NOT VERACRYPT_NOASM)
+    enable_language(ASM_MASM)
+    set(DRV_MASM_SRCS
+        "${CMAKE_SOURCE_DIR}/src/Crypto/rdrand_ml.asm"
+        "${CMAKE_SOURCE_DIR}/src/Crypto/rdseed_ml.asm"
+    )
+    foreach(ASM_FILE ${DRV_MASM_SRCS})
+        get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
+        set(ASM_OBJ "${CMAKE_CURRENT_BINARY_DIR}/${ASM_NAME}_drv.obj")
+        add_custom_command(
+            OUTPUT ${ASM_OBJ}
+            COMMAND ml64.exe /D_M_X64 /Fo${ASM_OBJ} /c ${ASM_FILE}
+            DEPENDS ${ASM_FILE}
+            COMMENT "MASM(drv): ${ASM_NAME}"
+        )
+        list(APPEND DRIVER_ASM_OBJECTS ${ASM_OBJ})
+    endforeach()
+endif()
+
+# Add assembly objects to driver sources
+if(DRIVER_ASM_OBJECTS)
+    target_sources(veracrypt_driver PRIVATE ${DRIVER_ASM_OBJECTS})
 endif()
 
 # Disable CRT and use kernel libraries
@@ -149,21 +277,37 @@ target_link_libraries(veracrypt_driver PRIVATE
     hal.lib
     wmilib.lib
 )
+target_link_directories(veracrypt_driver PRIVATE
+    "${WINSDK_LIB_ROOT}"
+)
 
 # Set driver properties
 set_target_properties(veracrypt_driver PROPERTIES
     SUFFIX ".sys"
     OUTPUT_NAME "veracrypt"
     PREFIX ""
-    VS_DRIVER_TYPE "WDM"
 )
 
-# Disable Spectre/CFG mitigations for driver (matching original vcxproj)
+# Set configuration type to Driver
+# Kernel-mode compilation settings (manual WDK, no platform toolset)
 if(MSVC)
     target_compile_options(veracrypt_driver PRIVATE
-        /kernel
-        /GS-
-        /Qspectre-
+        /kernel /GS- /Qspectre-
+    )
+    target_link_options(veracrypt_driver PRIVATE
+        /NODEFAULTLIB:libucrt.lib
+        /NODEFAULTLIB:libucrtd.lib
+        /NODEFAULTLIB:libcmt.lib
+        /NODEFAULTLIB:libcmtd.lib
+        /NODEFAULTLIB:msvcrt.lib
+        /NODEFAULTLIB:msvcrtd.lib
+        /DRIVER
+        /MANIFEST:NO
+        /ENTRY:DriverEntry
+    )
+    set_target_properties(veracrypt_driver PROPERTIES
+        MSVC_RUNTIME_LIBRARY ""
+        VS_NO_MANIFEST "1"
     )
 endif()
 

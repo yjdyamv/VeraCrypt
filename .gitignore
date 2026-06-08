@@ -32,6 +32,7 @@ src/Setup/Linux/veracrypt_*.tar.gz
 src/Setup/Linux/veracrypt-*-setup-*
 
 # VC macOS build artifacts
+build/
 src/Main/VeraCrypt
 src/Main/VeraCrypt.app
 src/Main/*.dmg
