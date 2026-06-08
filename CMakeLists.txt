@@ -51,6 +51,7 @@ option(VERACRYPT_WOLFCRYPT  "Build with wolfCrypt as crypto provider"     OFF)
 option(VERACRYPT_STATIC     "Statically link wxWidgets"                   OFF)
 option(VERACRYPT_REPRODUCIBLE "Enable reproducible build"                  ON)
 option(VERACRYPT_NOAESNI    "Disable AES-NI support"                      OFF)
+option(VERACRYPT_SKIP_SIGNATURE_CHECK "Skip Authenticode signature verification" ON)
 
 set(VERACRYPT_PKCS11_INC "${CMAKE_SOURCE_DIR}/src/PKCS11" CACHE PATH "PKCS#11 include directory")
 
@@ -196,6 +197,11 @@ else()
     set(CMAKE_C_STANDARD 11)
     set(CMAKE_CXX_STANDARD 14)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+# Signature verification skip for development/testing builds
+if(VERACRYPT_SKIP_SIGNATURE_CHECK)
+    add_compile_definitions(VC_SKIP_OS_DRIVER_REQ_CHECK)
 endif()
 
 # ============================================================================

@@ -45,12 +45,14 @@ set(CPACK_NSIS_CREATE_ICONS_EXTRA "
     CreateShortCut '$SMPROGRAMS\\VeraCrypt\\VeraCrypt.lnk' '$INSTDIR\\VeraCrypt.exe'
     CreateShortCut '$SMPROGRAMS\\VeraCrypt\\VeraCrypt Format.lnk' '$INSTDIR\\VeraCrypt Format.exe'
     CreateShortCut '$SMPROGRAMS\\VeraCrypt\\Uninstall.lnk' '$INSTDIR\\Uninstall.exe'
+    CreateShortCut '$DESKTOP\\VeraCrypt.lnk' '$INSTDIR\\VeraCrypt.exe'
 ")
 set(CPACK_NSIS_DELETE_ICONS_EXTRA "
     Delete '$SMPROGRAMS\\VeraCrypt\\VeraCrypt.lnk'
     Delete '$SMPROGRAMS\\VeraCrypt\\VeraCrypt Format.lnk'
     Delete '$SMPROGRAMS\\VeraCrypt\\Uninstall.lnk'
     RMDir '$SMPROGRAMS\\VeraCrypt'
+    Delete '$DESKTOP\\VeraCrypt.lnk'
 ")
 
 # ---------------------------------------------------------------------------
