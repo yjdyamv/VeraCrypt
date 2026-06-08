@@ -151,7 +151,11 @@ if(CRYPTO_X64 AND NOT VERACRYPT_NOASM)
     endif()
 endif()
 
-# YASM assembly (x64 only)
+# YASM assembly — .S files (gas parser) + .asm files (YASM-syntax: ddq, %ifidn)
+# NOTE: These use YASM-specific constructs (ddq, %ifidn) incompatible with NASM.
+# On Unix, NOASM disables them. On Windows x64 they are required for linking.
+# Without YASM, Twofish/Camellia/SHA-256/SHA-512/Argon2-AVX2 asm is skipped.
+# Install: https://github.com/yasm/yasm/releases (needs VC++ 2010 runtime)
 if(CRYPTO_X64 AND NOT VERACRYPT_NOASM AND NOT CRYPTO_ARM64)
     find_program(YASM_EXECUTABLE yasm)
     if(YASM_EXECUTABLE)
@@ -159,6 +163,7 @@ if(CRYPTO_X64 AND NOT VERACRYPT_NOASM AND NOT CRYPTO_ARM64)
             Twofish_x64.S
             Camellia_aesni_x64.S
             Camellia_x64.S
+            sha512-x64-nayuki.S
         )
         foreach(ASM_FILE ${YASM_S_SOURCES})
             get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
@@ -175,16 +180,16 @@ if(CRYPTO_X64 AND NOT VERACRYPT_NOASM AND NOT CRYPTO_ARM64)
                 COMMAND ${YASM_EXECUTABLE}
                     -f ${YASM_FMT}
                     -D __GNUC__ -D __YASM__ -D WINABI
-                    -p gas
+                    -p gas -Xvc
                     -o ${ASM_OBJ}
                     ${CMAKE_CURRENT_SOURCE_DIR}/${ASM_FILE}
                 DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${ASM_FILE}
-                COMMENT "YASM: ${ASM_FILE}"
+                COMMENT "YASM(gas): ${ASM_FILE}"
             )
             list(APPEND CRYPTO_ASM_OBJECTS ${ASM_OBJ})
         endforeach()
 
-        # SHA asm variants
+        # SHA-256/512 AVX/SSE + Argon2 AVX2 .asm files (YASM syntax without -p gas)
         set(YASM_ASM_SOURCES
             sha256_avx1_x64.asm
             sha256_avx2_x64.asm
@@ -192,22 +197,17 @@ if(CRYPTO_X64 AND NOT VERACRYPT_NOASM AND NOT CRYPTO_ARM64)
             sha512_avx1_x64.asm
             sha512_avx2_x64.asm
             sha512_sse4_x64.asm
+            Argon2/src/opt_avx2.asm
         )
         foreach(ASM_FILE ${YASM_ASM_SOURCES})
             get_filename_component(ASM_NAME ${ASM_FILE} NAME_WE)
             set(ASM_OBJ "${CMAKE_CURRENT_BINARY_DIR}/${ASM_NAME}_yasm.obj")
-            if(MSVC)
-                set(YASM_FMT win64)
-            elseif(APPLE)
-                set(YASM_FMT macho64)
-            else()
-                set(YASM_FMT elf64)
-            endif()
             add_custom_command(
                 OUTPUT ${ASM_OBJ}
                 COMMAND ${YASM_EXECUTABLE}
                     -f ${YASM_FMT}
                     -D __GNUC__ -D __YASM__ -D WINABI
+                    -Xvc -Ox
                     -o ${ASM_OBJ}
                     ${CMAKE_CURRENT_SOURCE_DIR}/${ASM_FILE}
                 DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${ASM_FILE}
@@ -216,41 +216,10 @@ if(CRYPTO_X64 AND NOT VERACRYPT_NOASM AND NOT CRYPTO_ARM64)
             list(APPEND CRYPTO_ASM_OBJECTS ${ASM_OBJ})
         endforeach()
 
-        # SHA-512 S file
-        set(SHA512_OBJ "${CMAKE_CURRENT_BINARY_DIR}/sha512-x64-nayuki_yasm.obj")
-        if(MSVC)
-            set(YASM_FMT win64)
-        elseif(APPLE)
-            set(YASM_FMT macho64)
-        else()
-            set(YASM_FMT elf64)
-        endif()
-        add_custom_command(
-            OUTPUT ${SHA512_OBJ}
-            COMMAND ${YASM_EXECUTABLE}
-                -f ${YASM_FMT}
-                -D __GNUC__ -D __YASM__ -D WINABI
-                -Xvc -p gas
-                -o ${SHA512_OBJ}
-                ${CMAKE_CURRENT_SOURCE_DIR}/sha512-x64-nayuki.S
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/sha512-x64-nayuki.S
-            COMMENT "YASM: sha512-x64-nayuki.S"
-        )
-        list(APPEND CRYPTO_ASM_OBJECTS ${SHA512_OBJ})
-
-        # Argon2 AVX2 asm
-        set(ARGON2_AVX2_OBJ "${CMAKE_CURRENT_BINARY_DIR}/opt_avx2_argon_yasm.obj")
-        add_custom_command(
-            OUTPUT ${ARGON2_AVX2_OBJ}
-            COMMAND ${YASM_EXECUTABLE}
-                -f ${YASM_FMT}
-                -D __GNUC__ -D __YASM__ -D WINABI
-                -o ${ARGON2_AVX2_OBJ}
-                ${CMAKE_CURRENT_SOURCE_DIR}/Argon2/src/opt_avx2.asm
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Argon2/src/opt_avx2.asm
-            COMMENT "YASM: Argon2/opt_avx2.asm"
-        )
-        list(APPEND CRYPTO_ASM_OBJECTS ${ARGON2_AVX2_OBJ})
+        message(STATUS "YASM found: gas-parser .S files enabled (Twofish, Camellia, SHA-512)")
+    else()
+        message(WARNING "YASM not found — Twofish/Camellia/SHA-256/512 asm skipped. "
+                "Install yasm for full performance.")
     endif()
 endif()
 
