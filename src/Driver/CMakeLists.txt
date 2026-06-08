@@ -287,7 +287,7 @@ target_link_directories(veracrypt_driver PRIVATE
 # Set driver properties
 set_target_properties(veracrypt_driver PROPERTIES
     SUFFIX ".sys"
-    OUTPUT_NAME "veracrypt"
+    OUTPUT_NAME "veracrypt-x64"
     PREFIX ""
 )
 

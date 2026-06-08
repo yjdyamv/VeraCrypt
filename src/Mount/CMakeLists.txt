@@ -161,6 +161,5 @@ if(MSVC)
 endif()
 
 set_target_properties(veracrypt_mount PROPERTIES
-    RUNTIME_OUTPUT_NAME "VeraCrypt"
-    VS_DEBUGGER_COMMAND "$(TargetPath)"
+    RUNTIME_OUTPUT_NAME "VeraCrypt-x64"
 )
